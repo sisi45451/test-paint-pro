@@ -1,1 +1,0 @@
-# test-paint-pro
