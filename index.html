@@ -1,0 +1,1067 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PaintPro — SaaS Peintre</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root {
+  --bg: #0f0f0d;
+  --surface: #1a1a17;
+  --surface2: #222220;
+  --surface3: #2a2a27;
+  --border: rgba(255,255,255,0.07);
+  --border2: rgba(255,255,255,0.13);
+  --accent: #e8c547;
+  --accent2: #f0d26a;
+  --accent-dim: rgba(232,197,71,0.12);
+  --text: #f0ede6;
+  --text2: #9a9890;
+  --text3: #5a5956;
+  --green: #4caf76;
+  --green-dim: rgba(76,175,118,0.12);
+  --red: #e05252;
+  --red-dim: rgba(224,82,82,0.12);
+  --blue: #5b9cf6;
+  --blue-dim: rgba(91,156,246,0.12);
+  --orange: #f07c3a;
+  --radius: 12px;
+  --radius-sm: 8px;
+  --radius-lg: 16px;
+  --font-display: 'Syne', sans-serif;
+  --font-body: 'DM Sans', sans-serif;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: var(--font-body); font-size: 14px; min-height: 100vh; }
+
+/* ---- SETUP BANNER ---- */
+#setup-banner {
+  background: linear-gradient(135deg, #1a1500, #251e00);
+  border: 1px solid rgba(232,197,71,0.3);
+  border-radius: var(--radius);
+  padding: 20px 24px;
+  margin: 20px;
+  display: none;
+}
+#setup-banner.show { display: block; }
+.setup-title { font-family: var(--font-display); font-size: 15px; font-weight: 700; color: var(--accent); margin-bottom: 12px; }
+.setup-steps { display: flex; flex-direction: column; gap: 10px; }
+.step { display: flex; gap: 12px; align-items: flex-start; }
+.step-num { width: 22px; height: 22px; border-radius: 50%; background: var(--accent); color: #1a1a00; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
+.step-content { font-size: 13px; color: var(--text2); line-height: 1.5; }
+.step-content strong { color: var(--text); }
+.setup-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; }
+.setup-input { width: 100%; padding: 10px 13px; background: var(--surface2); border: 1px solid var(--border2); border-radius: var(--radius-sm); color: var(--text); font-size: 13px; font-family: var(--font-body); outline: none; }
+.setup-input:focus { border-color: var(--accent); }
+.btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 500; cursor: pointer; border: none; font-family: var(--font-body); transition: all .15s; }
+.btn-accent { background: var(--accent); color: #1a1a00; width: 100%; justify-content: center; margin-top: 10px; }
+.btn-accent:hover { background: var(--accent2); }
+.btn-ghost { background: var(--surface2); color: var(--text2); border: 1px solid var(--border2); }
+.btn-ghost:hover { background: var(--surface3); color: var(--text); }
+.btn-danger { background: var(--red-dim); color: var(--red); border: 1px solid rgba(224,82,82,0.2); }
+.btn-primary { background: var(--accent); color: #1a1a00; }
+.btn-primary:hover { background: var(--accent2); }
+
+/* ---- AUTH ---- */
+#auth-screen {
+  min-height: 100vh;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+#auth-screen.show { display: flex; }
+.auth-card {
+  width: 420px;
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius-lg);
+  padding: 36px;
+}
+.auth-logo { display: flex; align-items: center; gap: 12px; margin-bottom: 28px; }
+.auth-logo-icon { width: 40px; height: 40px; background: var(--accent); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; }
+.auth-logo-text { font-family: var(--font-display); font-size: 20px; font-weight: 800; }
+.auth-logo-sub { font-size: 12px; color: var(--text3); }
+.auth-title { font-family: var(--font-display); font-size: 20px; font-weight: 700; margin-bottom: 6px; }
+.auth-sub { font-size: 13px; color: var(--text2); margin-bottom: 24px; }
+.form-group { margin-bottom: 14px; }
+.form-label { font-size: 11px; color: var(--text2); margin-bottom: 5px; display: block; text-transform: uppercase; letter-spacing: 0.8px; }
+.form-input { width: 100%; padding: 11px 14px; background: var(--surface2); border: 1px solid var(--border2); border-radius: var(--radius-sm); color: var(--text); font-size: 14px; font-family: var(--font-body); outline: none; transition: border-color .15s; }
+.form-input:focus { border-color: var(--accent); }
+.form-select { width: 100%; padding: 11px 14px; background: var(--surface2); border: 1px solid var(--border2); border-radius: var(--radius-sm); color: var(--text); font-size: 14px; font-family: var(--font-body); outline: none; appearance: none; }
+.form-textarea { width: 100%; padding: 10px 13px; background: var(--surface2); border: 1px solid var(--border2); border-radius: var(--radius-sm); color: var(--text); font-size: 13px; font-family: var(--font-body); outline: none; resize: vertical; min-height: 80px; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.auth-toggle { text-align: center; margin-top: 16px; font-size: 13px; color: var(--text2); }
+.auth-toggle span { color: var(--accent); cursor: pointer; }
+.auth-toggle span:hover { text-decoration: underline; }
+.auth-error { background: var(--red-dim); border: 1px solid rgba(224,82,82,0.3); border-radius: var(--radius-sm); padding: 10px 14px; font-size: 13px; color: var(--red); margin-bottom: 14px; display: none; }
+.auth-error.show { display: block; }
+.auth-success { background: var(--green-dim); border: 1px solid rgba(76,175,118,0.3); border-radius: var(--radius-sm); padding: 10px 14px; font-size: 13px; color: var(--green); margin-bottom: 14px; display: none; }
+.auth-success.show { display: block; }
+
+/* ---- APP ---- */
+#app { display: none; }
+#app.show { display: flex; min-height: 100vh; }
+
+.sidebar { width: 220px; min-height: 100vh; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 24px 0; position: fixed; left: 0; top: 0; bottom: 0; z-index: 100; }
+.logo { display: flex; align-items: center; gap: 10px; padding: 0 20px 24px; border-bottom: 1px solid var(--border); margin-bottom: 20px; }
+.logo-icon { width: 34px; height: 34px; background: var(--accent); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px; }
+.logo-text { font-family: var(--font-display); font-weight: 800; font-size: 16px; }
+.logo-sub { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 1px; }
+.nav-section { padding: 0 12px; margin-bottom: 8px; }
+.nav-label { font-size: 10px; text-transform: uppercase; letter-spacing: 1.2px; color: var(--text3); padding: 0 8px; margin-bottom: 6px; }
+.nav-item { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: var(--radius-sm); cursor: pointer; color: var(--text2); font-size: 13.5px; transition: all .15s; user-select: none; }
+.nav-item:hover { background: var(--surface3); color: var(--text); }
+.nav-item.active { background: var(--accent-dim); color: var(--accent); }
+.nav-item .icon { font-size: 16px; width: 20px; text-align: center; }
+.nav-badge { margin-left: auto; background: var(--red); color: white; font-size: 10px; font-weight: 600; padding: 1px 6px; border-radius: 20px; }
+.sidebar-bottom { margin-top: auto; padding: 16px 12px 0; border-top: 1px solid var(--border); }
+.user-card { display: flex; align-items: center; gap: 10px; padding: 10px; border-radius: var(--radius-sm); background: var(--surface2); }
+.avatar { width: 32px; height: 32px; background: var(--accent-dim); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; color: var(--accent); }
+.user-name { font-size: 13px; font-weight: 500; }
+.user-plan { font-size: 11px; color: var(--text3); }
+
+.main { margin-left: 220px; flex: 1; display: flex; flex-direction: column; }
+.topbar { display: flex; align-items: center; justify-content: space-between; padding: 18px 28px; border-bottom: 1px solid var(--border); background: var(--bg); position: sticky; top: 0; z-index: 50; }
+.page-title { font-family: var(--font-display); font-size: 18px; font-weight: 700; }
+.topbar-actions { display: flex; gap: 8px; }
+.content { padding: 28px; flex: 1; }
+
+.page { display: none; }
+.page.active { display: block; animation: fadeIn .2s ease; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
+/* Stats */
+.stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 24px; }
+.stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; position: relative; overflow: hidden; }
+.stat-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; }
+.stat-card.yellow::before { background: var(--accent); }
+.stat-card.green::before { background: var(--green); }
+.stat-card.blue::before { background: var(--blue); }
+.stat-card.orange::before { background: var(--orange); }
+.stat-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--text3); margin-bottom: 8px; }
+.stat-value { font-family: var(--font-display); font-size: 26px; font-weight: 700; line-height: 1; margin-bottom: 6px; }
+.stat-sub { font-size: 12px; color: var(--text2); }
+
+/* Cards */
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; margin-bottom: 20px; }
+.card-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid var(--border); }
+.card-title { font-family: var(--font-display); font-size: 14px; font-weight: 600; }
+.card-body { padding: 20px; }
+
+/* Table */
+.table { width: 100%; border-collapse: collapse; }
+.table th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--text3); padding: 8px 14px; border-bottom: 1px solid var(--border); font-weight: 500; }
+.table td { padding: 12px 14px; border-bottom: 1px solid var(--border); font-size: 13px; vertical-align: middle; }
+.table tr:last-child td { border-bottom: none; }
+.table tbody tr:hover td { background: var(--surface2); cursor: pointer; }
+.badge { display: inline-flex; align-items: center; padding: 3px 8px; border-radius: 20px; font-size: 11px; font-weight: 500; }
+.badge-green { background: var(--green-dim); color: var(--green); }
+.badge-yellow { background: var(--accent-dim); color: var(--accent); }
+.badge-red { background: var(--red-dim); color: var(--red); }
+.badge-gray { background: var(--surface3); color: var(--text2); }
+.badge-blue { background: var(--blue-dim); color: var(--blue); }
+
+/* Section header */
+.section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+.section-title { font-family: var(--font-display); font-size: 15px; font-weight: 600; }
+
+/* Devis form */
+.devis-layout { display: grid; grid-template-columns: 1fr 360px; gap: 20px; }
+.prestation-row { display: grid; grid-template-columns: 2fr 70px 70px 85px 32px; gap: 8px; align-items: center; margin-bottom: 8px; }
+.prestation-row input { background: var(--surface2); border: 1px solid var(--border2); border-radius: var(--radius-sm); color: var(--text); font-size: 13px; padding: 8px 10px; font-family: var(--font-body); outline: none; width: 100%; }
+.prestation-row input:focus { border-color: var(--accent); }
+.btn-icon { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 6px; border: none; cursor: pointer; font-size: 16px; background: var(--red-dim); color: var(--red); transition: all .15s; }
+.btn-icon:hover { background: rgba(224,82,82,0.25); }
+.devis-preview { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 22px; position: sticky; top: 80px; }
+.preview-label { font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--accent); font-weight: 700; margin-bottom: 14px; }
+.total-line { display: flex; justify-content: space-between; font-size: 13px; color: var(--text2); padding: 5px 0; border-bottom: 1px solid var(--border); }
+.total-ttc { display: flex; justify-content: space-between; font-family: var(--font-display); font-size: 20px; font-weight: 700; padding-top: 10px; color: var(--accent); }
+
+/* Loading */
+.loading { display: flex; align-items: center; gap: 8px; color: var(--text3); font-size: 13px; padding: 20px; }
+.spinner { width: 16px; height: 16px; border: 2px solid var(--border2); border-top-color: var(--accent); border-radius: 50%; animation: spin .7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Empty */
+.empty { text-align: center; padding: 48px 24px; color: var(--text3); }
+.empty-icon { font-size: 36px; margin-bottom: 12px; }
+
+/* Toast */
+.toast { position: fixed; bottom: 24px; right: 24px; background: var(--surface); border: 1px solid var(--border2); border-radius: var(--radius); padding: 12px 18px; font-size: 13px; z-index: 9999; transform: translateY(20px); opacity: 0; transition: all .3s; display: flex; align-items: center; gap: 8px; }
+.toast.show { transform: translateY(0); opacity: 1; }
+.toast.success { border-color: var(--green); color: var(--green); }
+.toast.error { border-color: var(--red); color: var(--red); }
+
+/* Modal */
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 1000; opacity: 0; pointer-events: none; transition: opacity .2s; }
+.modal-overlay.open { opacity: 1; pointer-events: all; }
+.modal { background: var(--surface); border: 1px solid var(--border2); border-radius: var(--radius-lg); width: 520px; max-width: 95vw; padding: 28px; transform: translateY(10px); transition: transform .2s; }
+.modal-overlay.open .modal { transform: translateY(0); }
+.modal-title { font-family: var(--font-display); font-size: 17px; font-weight: 700; margin-bottom: 20px; }
+.modal-footer { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
+
+/* Quick tags */
+.quick-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.quick-tag { padding: 4px 10px; background: var(--surface2); border: 1px solid var(--border2); border-radius: 20px; font-size: 11px; color: var(--text2); cursor: pointer; transition: all .15s; }
+.quick-tag:hover { border-color: var(--accent); color: var(--accent); }
+
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-thumb { background: var(--surface3); border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<!-- SETUP BANNER -->
+<div id="setup-banner" class="show">
+  <div class="setup-title">⚙️ Configuration Supabase requise — 3 minutes pour tout connecter</div>
+  <div class="setup-steps">
+    <div class="step"><div class="step-num">1</div><div class="step-content">Va sur <strong>supabase.com</strong> → "New project" → donne un nom (ex: paintpro) → choisis une région EU</div></div>
+    <div class="step"><div class="step-num">2</div><div class="step-content">Dans ton projet → <strong>Settings → API</strong> → copie "Project URL" et "anon public key"</div></div>
+    <div class="step"><div class="step-num">3</div><div class="step-content">Dans <strong>SQL Editor</strong> → colle et exécute le script SQL ci-dessous pour créer les tables</div></div>
+    <div class="step"><div class="step-num">4</div><div class="step-content">Colle tes clés ici et clique "Connecter" :</div></div>
+  </div>
+  <div class="setup-inputs">
+    <input class="setup-input" id="sb-url" placeholder="https://xxxx.supabase.co" />
+    <input class="setup-input" id="sb-key" placeholder="sb_publishable_xxxx... ou eyJhbGci..." />
+  </div>
+  <button class="btn btn-accent" onclick="connectSupabase()">🔗 Connecter Supabase</button>
+  <details style="margin-top:16px">
+    <summary style="cursor:pointer;font-size:12px;color:var(--text3)">Voir le script SQL à exécuter dans Supabase →</summary>
+    <pre style="margin-top:10px;padding:14px;background:var(--surface2);border-radius:8px;font-size:11px;color:var(--text2);overflow-x:auto;line-height:1.6">-- Profiles utilisateurs
+CREATE TABLE profiles (
+  id UUID REFERENCES auth.users ON DELETE CASCADE PRIMARY KEY,
+  email TEXT,
+  nom_entreprise TEXT,
+  telephone TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users can manage own profile"
+  ON profiles FOR ALL USING (auth.uid() = id);
+
+-- Clients
+CREATE TABLE clients (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES auth.users ON DELETE CASCADE,
+  nom TEXT NOT NULL,
+  telephone TEXT,
+  email TEXT,
+  adresse TEXT,
+  type TEXT DEFAULT 'particulier',
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE clients ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users manage own clients"
+  ON clients FOR ALL USING (auth.uid() = user_id);
+
+-- Devis
+CREATE TABLE devis (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES auth.users ON DELETE CASCADE,
+  client_id UUID REFERENCES clients ON DELETE SET NULL,
+  numero TEXT,
+  statut TEXT DEFAULT 'brouillon',
+  tva_taux NUMERIC DEFAULT 10,
+  acompte_pct NUMERIC DEFAULT 30,
+  remarques TEXT,
+  total_ht NUMERIC DEFAULT 0,
+  total_tva NUMERIC DEFAULT 0,
+  total_ttc NUMERIC DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE devis ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users manage own devis"
+  ON devis FOR ALL USING (auth.uid() = user_id);
+
+-- Lignes de devis
+CREATE TABLE devis_lignes (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  devis_id UUID REFERENCES devis ON DELETE CASCADE,
+  designation TEXT,
+  quantite NUMERIC DEFAULT 1,
+  unite TEXT DEFAULT 'm²',
+  prix_unitaire NUMERIC DEFAULT 0,
+  total NUMERIC DEFAULT 0,
+  ordre INT DEFAULT 0
+);
+ALTER TABLE devis_lignes ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users manage own lignes"
+  ON devis_lignes FOR ALL USING (
+    EXISTS (SELECT 1 FROM devis d WHERE d.id = devis_id AND d.user_id = auth.uid())
+  );
+
+-- Chantiers
+CREATE TABLE chantiers (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES auth.users ON DELETE CASCADE,
+  client_id UUID REFERENCES clients ON DELETE SET NULL,
+  devis_id UUID REFERENCES devis ON DELETE SET NULL,
+  nom TEXT NOT NULL,
+  adresse TEXT,
+  statut TEXT DEFAULT 'en_cours',
+  avancement INT DEFAULT 0,
+  date_debut DATE,
+  date_fin_prevue DATE,
+  montant NUMERIC DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE chantiers ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users manage own chantiers"
+  ON chantiers FOR ALL USING (auth.uid() = user_id);
+
+-- Journal chantier
+CREATE TABLE journal_chantier (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  chantier_id UUID REFERENCES chantiers ON DELETE CASCADE,
+  note TEXT,
+  avancement INT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE journal_chantier ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users manage own journal"
+  ON journal_chantier FOR ALL USING (
+    EXISTS (SELECT 1 FROM chantiers c WHERE c.id = chantier_id AND c.user_id = auth.uid())
+  );
+
+-- Trigger profile auto à l'inscription
+CREATE OR REPLACE FUNCTION handle_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO profiles (id, email)
+  VALUES (NEW.id, NEW.email);
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION handle_new_user();</pre>
+  </details>
+</div>
+
+<!-- AUTH SCREEN -->
+<div id="auth-screen">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <div class="auth-logo-icon">🖌️</div>
+      <div>
+        <div class="auth-logo-text">PaintPro</div>
+        <div class="auth-logo-sub">Gestion chantier peinture</div>
+      </div>
+    </div>
+    <div id="auth-login-form">
+      <div class="auth-title">Connexion</div>
+      <div class="auth-sub">Accède à ton espace de gestion</div>
+      <div class="auth-error" id="login-error"></div>
+      <div class="form-group"><label class="form-label">Email</label><input class="form-input" id="login-email" type="email" placeholder="tu@example.fr"></div>
+      <div class="form-group"><label class="form-label">Mot de passe</label><input class="form-input" id="login-pwd" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"></div>
+      <button class="btn btn-accent" style="width:100%;margin-top:8px" onclick="doLogin()" id="login-btn">Se connecter</button>
+      <div class="auth-toggle">Pas encore de compte ? <span onclick="showRegister()">Créer un compte</span></div>
+    </div>
+    <div id="auth-register-form" style="display:none">
+      <div class="auth-title">Créer un compte</div>
+      <div class="auth-sub">Essai gratuit 14 jours</div>
+      <div class="auth-error" id="register-error"></div>
+      <div class="auth-success" id="register-success"></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Prénom</label><input class="form-input" id="reg-prenom" placeholder="Jean"></div>
+        <div class="form-group"><label class="form-label">Nom entreprise</label><input class="form-input" id="reg-entreprise" placeholder="Dupont Peinture"></div>
+      </div>
+      <div class="form-group"><label class="form-label">Email</label><input class="form-input" id="reg-email" type="email" placeholder="tu@example.fr"></div>
+      <div class="form-group"><label class="form-label">Mot de passe</label><input class="form-input" id="reg-pwd" type="password" placeholder="8 caractères minimum"></div>
+      <button class="btn btn-accent" style="width:100%;margin-top:8px" onclick="doRegister()" id="register-btn">Créer mon compte</button>
+      <div class="auth-toggle">Déjà un compte ? <span onclick="showLogin()">Se connecter</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <aside class="sidebar">
+    <div class="logo">
+      <div class="logo-icon">🖌️</div>
+      <div><div class="logo-text">PaintPro</div><div class="logo-sub">Gestion chantier</div></div>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Principal</div>
+      <div class="nav-item active" onclick="showPage('dashboard')"><span class="icon">📊</span> Tableau de bord</div>
+      <div class="nav-item" onclick="showPage('devis')"><span class="icon">📄</span> Devis</div>
+      <div class="nav-item" onclick="showPage('chantiers')"><span class="icon">🏗️</span> Chantiers</div>
+      <div class="nav-item" onclick="showPage('clients')"><span class="icon">👥</span> Clients</div>
+    </div>
+    <div class="sidebar-bottom">
+      <div class="user-card">
+        <div class="avatar" id="user-avatar">?</div>
+        <div>
+          <div class="user-name" id="user-name">Chargement...</div>
+          <div class="user-plan" id="user-email" style="font-size:10px;color:var(--text3)"></div>
+        </div>
+      </div>
+      <button class="btn btn-ghost" style="width:100%;margin-top:8px;font-size:12px" onclick="doLogout()">⬅️ Déconnexion</button>
+    </div>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <div class="page-title" id="pageTitle">Tableau de bord</div>
+      <div class="topbar-actions" id="topbarActions">
+        <button class="btn btn-primary" onclick="showPage('devis');setTimeout(()=>openNewDevis(),100)">+ Nouveau devis</button>
+      </div>
+    </div>
+    <div class="content">
+
+      <!-- DASHBOARD -->
+      <div class="page active" id="page-dashboard">
+        <div class="stats-grid">
+          <div class="stat-card yellow">
+            <div class="stat-label">Devis total HT</div>
+            <div class="stat-value" id="stat-ca">—</div>
+            <div class="stat-sub" id="stat-ca-sub">chargement...</div>
+          </div>
+          <div class="stat-card green">
+            <div class="stat-label">Devis signés</div>
+            <div class="stat-value" id="stat-signes">—</div>
+            <div class="stat-sub">devis acceptés</div>
+          </div>
+          <div class="stat-card blue">
+            <div class="stat-label">Chantiers actifs</div>
+            <div class="stat-value" id="stat-chantiers">—</div>
+            <div class="stat-sub">en cours</div>
+          </div>
+          <div class="stat-card orange">
+            <div class="stat-label">Clients</div>
+            <div class="stat-value" id="stat-clients">—</div>
+            <div class="stat-sub">dans la base</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Derniers devis</div>
+            <button class="btn btn-ghost" style="font-size:12px;padding:5px 10px" onclick="showPage('devis')">Voir tout →</button>
+          </div>
+          <div id="dash-devis-list"><div class="loading"><div class="spinner"></div>Chargement...</div></div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Chantiers en cours</div>
+            <button class="btn btn-ghost" style="font-size:12px;padding:5px 10px" onclick="showPage('chantiers')">Voir tout →</button>
+          </div>
+          <div id="dash-chantiers-list"><div class="loading"><div class="spinner"></div>Chargement...</div></div>
+        </div>
+      </div>
+
+      <!-- DEVIS -->
+      <div class="page" id="page-devis">
+        <div class="section-header">
+          <div class="section-title" id="devis-list-title">Mes devis</div>
+          <button class="btn btn-primary" onclick="openNewDevis()">+ Nouveau devis</button>
+        </div>
+        <div id="devis-list-view">
+          <div class="card">
+            <div id="devis-table-container"><div class="loading"><div class="spinner"></div>Chargement...</div></div>
+          </div>
+        </div>
+        <div id="devis-form-view" style="display:none">
+          <div style="margin-bottom:16px">
+            <button class="btn btn-ghost" onclick="closeDevisForm()">← Retour à la liste</button>
+          </div>
+          <div class="devis-layout">
+            <div>
+              <div class="card">
+                <div class="card-header"><div class="card-title">Client</div></div>
+                <div class="card-body">
+                  <div class="form-group">
+                    <label class="form-label">Sélectionner un client</label>
+                    <select class="form-select" id="devis-client-select" onchange="updatePreview()">
+                      <option value="">— Choisir —</option>
+                    </select>
+                  </div>
+                  <button class="btn btn-ghost" style="font-size:12px" onclick="showModal('newClient')">+ Créer un nouveau client</button>
+                </div>
+              </div>
+              <div class="card">
+                <div class="card-header">
+                  <div class="card-title">Prestations</div>
+                  <button class="btn btn-ghost" style="font-size:12px;padding:5px 10px" onclick="addLigne()">+ Ajouter</button>
+                </div>
+                <div class="card-body">
+                  <div id="lignes-container"></div>
+                  <div class="quick-tags">
+                    <span class="quick-tag" onclick="addQuick('Peinture murs','m²',18)">🖌️ Murs</span>
+                    <span class="quick-tag" onclick="addQuick('Peinture plafond','m²',22)">⬜ Plafond</span>
+                    <span class="quick-tag" onclick="addQuick('Lessivage','m²',6)">🧹 Lessivage</span>
+                    <span class="quick-tag" onclick="addQuick('Impression','m²',8)">🎨 Impression</span>
+                    <span class="quick-tag" onclick="addQuick('Enduit rebouchage','forfait',120)">🔨 Enduit</span>
+                    <span class="quick-tag" onclick="addQuick('Protection sol','forfait',80)">🛡️ Protection</span>
+                  </div>
+                </div>
+              </div>
+              <div class="card">
+                <div class="card-header"><div class="card-title">Conditions</div></div>
+                <div class="card-body">
+                  <div class="form-row">
+                    <div class="form-group">
+                      <label class="form-label">TVA</label>
+                      <select class="form-select" id="devis-tva" onchange="updatePreview()">
+                        <option value="10">10% — Rénovation</option>
+                        <option value="20">20% — Standard</option>
+                        <option value="5.5">5,5% — Énergie</option>
+                      </select>
+                    </div>
+                    <div class="form-group">
+                      <label class="form-label">Acompte</label>
+                      <select class="form-select" id="devis-acompte">
+                        <option value="30">30%</option>
+                        <option value="40">40%</option>
+                        <option value="50">50%</option>
+                        <option value="0">Pas d'acompte</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Remarques</label>
+                    <textarea class="form-textarea" id="devis-remarques" placeholder="Garanties, délais..."></textarea>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="devis-preview">
+              <div class="preview-label">Aperçu devis</div>
+              <div style="font-size:13px;color:var(--text2);margin-bottom:14px" id="prev-client-info">Aucun client sélectionné</div>
+              <div id="prev-lignes" style="font-size:12px;color:var(--text2);min-height:50px;margin-bottom:14px"></div>
+              <div style="border-top:1px solid var(--border);padding-top:10px">
+                <div class="total-line"><span>Total HT</span><span id="prev-ht">0,00 €</span></div>
+                <div class="total-line"><span id="prev-tva-label">TVA 10%</span><span id="prev-tva">0,00 €</span></div>
+                <div class="total-ttc"><span>TTC</span><span id="prev-ttc">0,00 €</span></div>
+              </div>
+              <div style="margin-top:12px;padding:10px;background:rgba(232,197,71,0.06);border-radius:8px;font-size:12px;color:var(--text2)">
+                Acompte : <strong style="color:var(--accent)" id="prev-acompte">0,00 €</strong>
+              </div>
+              <div style="margin-top:14px;display:flex;flex-direction:column;gap:8px">
+                <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="saveDevis()">💾 Enregistrer le devis</button>
+                <button class="btn btn-ghost" style="width:100%;justify-content:center" id="btn-sign" onclick="marquerSigne()">✅ Marquer comme signé</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CHANTIERS -->
+      <div class="page" id="page-chantiers">
+        <div class="section-header">
+          <div class="section-title">Mes chantiers</div>
+          <button class="btn btn-primary" onclick="showModal('newChantier')">+ Nouveau chantier</button>
+        </div>
+        <div class="card">
+          <div id="chantiers-container"><div class="loading"><div class="spinner"></div>Chargement...</div></div>
+        </div>
+      </div>
+
+      <!-- CLIENTS -->
+      <div class="page" id="page-clients">
+        <div class="section-header">
+          <div class="section-title">Mes clients</div>
+          <button class="btn btn-primary" onclick="showModal('newClient')">+ Nouveau client</button>
+        </div>
+        <div class="card">
+          <div id="clients-container"><div class="loading"><div class="spinner"></div>Chargement...</div></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- MODALS -->
+<div class="modal-overlay" id="modal-newClient" onclick="closeModal('newClient')">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-title">Nouveau client</div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Nom / Société</label><input class="form-input" id="nc-nom" placeholder="M. Dupont"></div>
+      <div class="form-group"><label class="form-label">Téléphone</label><input class="form-input" id="nc-tel" placeholder="06 xx xx xx xx"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Email</label><input class="form-input" id="nc-email" type="email" placeholder="email@exemple.fr"></div>
+    <div class="form-group"><label class="form-label">Adresse</label><input class="form-input" id="nc-adresse" placeholder="Adresse complète"></div>
+    <div class="form-group"><label class="form-label">Type</label>
+      <select class="form-select" id="nc-type">
+        <option value="particulier">Particulier</option>
+        <option value="professionnel">Professionnel / SCI</option>
+        <option value="agence">Agence immobilière</option>
+        <option value="bailleur">Bailleur social</option>
+      </select>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('newClient')">Annuler</button>
+      <button class="btn btn-primary" onclick="saveClient()">Créer le client</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-newChantier" onclick="closeModal('newChantier')">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-title">Nouveau chantier</div>
+    <div class="form-group"><label class="form-label">Nom du chantier</label><input class="form-input" id="nch-nom" placeholder="Ex: Salon Mme Lefebvre"></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Client</label>
+        <select class="form-select" id="nch-client"><option value="">— Choisir —</option></select>
+      </div>
+      <div class="form-group"><label class="form-label">Montant (€ HT)</label><input class="form-input" id="nch-montant" type="number" placeholder="2400"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Adresse</label><input class="form-input" id="nch-adresse" placeholder="Adresse du chantier"></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Début</label><input class="form-input" id="nch-debut" type="date"></div>
+      <div class="form-group"><label class="form-label">Fin prévue</label><input class="form-input" id="nch-fin" type="date"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('newChantier')">Annuler</button>
+      <button class="btn btn-primary" onclick="saveChantier()">Créer le chantier</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"><span id="toast-msg"></span></div>
+
+<script>
+let supabase = null;
+let currentUser = null;
+let lignes = [];
+let currentDevisId = null;
+let allClients = [];
+
+// ---- SUPABASE CONNECT ----
+function connectSupabase() {
+  const url = document.getElementById('sb-url').value.trim();
+  const key = document.getElementById('sb-key').value.trim();
+  if (!url || !key) { showToast('Colle ton URL et ta clé Supabase', 'error'); return; }
+  if (!url.startsWith('https://')) { showToast('URL invalide — doit commencer par https://', 'error'); return; }
+  if (!key.startsWith('eyJ') && !key.startsWith('sb_publishable')) { showToast('Clé invalide — doit commencer par sb_publishable ou eyJ', 'error'); return; }
+  try {
+    supabase = window.supabase.createClient(url, key);
+    localStorage.setItem('sb_url', url);
+    localStorage.setItem('sb_key', key);
+    document.getElementById('setup-banner').classList.remove('show');
+    showToast('Supabase connecté ✓', 'success');
+    initApp();
+  } catch(e) { showToast('Erreur de connexion: ' + e.message, 'error'); }
+}
+
+function tryAutoConnect() {
+  const url = localStorage.getItem('sb_url') || 'https://gmzjloodonkekhgccgwr.supabase.co';
+  const key = localStorage.getItem('sb_key') || 'sb_publishable_i96FGd32MLT-no7t0uRUxw_8wnVpeFC';
+  if (url && key) {
+    supabase = window.supabase.createClient(url, key);
+    document.getElementById('setup-banner').classList.remove('show');
+    initApp();
+  }
+}
+
+async function initApp() {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (session) {
+    currentUser = session.user;
+    showApp();
+  } else {
+    showAuthScreen();
+  }
+  supabase.auth.onAuthStateChange((event, session) => {
+    if (session) { currentUser = session.user; showApp(); }
+    else { currentUser = null; showAuthScreen(); }
+  });
+}
+
+// ---- AUTH ----
+function showAuthScreen() {
+  document.getElementById('app').classList.remove('show');
+  document.getElementById('auth-screen').classList.add('show');
+}
+function showApp() {
+  document.getElementById('auth-screen').classList.remove('show');
+  document.getElementById('app').classList.add('show');
+  loadUserProfile();
+  loadDashboard();
+}
+function showRegister() {
+  document.getElementById('auth-login-form').style.display = 'none';
+  document.getElementById('auth-register-form').style.display = 'block';
+}
+function showLogin() {
+  document.getElementById('auth-register-form').style.display = 'none';
+  document.getElementById('auth-login-form').style.display = 'block';
+}
+
+async function doLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const pwd = document.getElementById('login-pwd').value;
+  const err = document.getElementById('login-error');
+  const btn = document.getElementById('login-btn');
+  if (!email || !pwd) { err.textContent = 'Remplis tous les champs'; err.classList.add('show'); return; }
+  btn.textContent = 'Connexion...'; btn.disabled = true;
+  const { error } = await supabase.auth.signInWithPassword({ email, password: pwd });
+  btn.textContent = 'Se connecter'; btn.disabled = false;
+  if (error) { err.textContent = error.message === 'Invalid login credentials' ? 'Email ou mot de passe incorrect' : error.message; err.classList.add('show'); }
+  else { err.classList.remove('show'); }
+}
+
+async function doRegister() {
+  const email = document.getElementById('reg-email').value.trim();
+  const pwd = document.getElementById('reg-pwd').value;
+  const entreprise = document.getElementById('reg-entreprise').value.trim();
+  const err = document.getElementById('register-error');
+  const succ = document.getElementById('register-success');
+  const btn = document.getElementById('register-btn');
+  if (!email || !pwd || !entreprise) { err.textContent = 'Remplis tous les champs'; err.classList.add('show'); return; }
+  if (pwd.length < 8) { err.textContent = 'Mot de passe minimum 8 caractères'; err.classList.add('show'); return; }
+  btn.textContent = 'Création...'; btn.disabled = true;
+  const { data, error } = await supabase.auth.signUp({ email, password: pwd, options: { data: { nom_entreprise: entreprise } } });
+  btn.textContent = 'Créer mon compte'; btn.disabled = false;
+  if (error) { err.textContent = error.message; err.classList.add('show'); }
+  else {
+    err.classList.remove('show');
+    if (data.user && !data.session) {
+      succ.textContent = 'Compte créé ! Vérifie ton email pour confirmer.'; succ.classList.add('show');
+    }
+    if (entreprise) {
+      await supabase.from('profiles').upsert({ id: data.user.id, email, nom_entreprise: entreprise });
+    }
+  }
+}
+
+async function doLogout() {
+  await supabase.auth.signOut();
+  showToast('Déconnecté', 'success');
+}
+
+async function loadUserProfile() {
+  const { data } = await supabase.from('profiles').select('*').eq('id', currentUser.id).single();
+  const name = data?.nom_entreprise || currentUser.email?.split('@')[0] || '?';
+  document.getElementById('user-name').textContent = name;
+  document.getElementById('user-email').textContent = currentUser.email;
+  document.getElementById('user-avatar').textContent = name[0].toUpperCase();
+}
+
+// ---- NAVIGATION ----
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  const titles = { dashboard: 'Tableau de bord', devis: 'Devis', chantiers: 'Chantiers', clients: 'Clients' };
+  document.getElementById('pageTitle').textContent = titles[name];
+  document.querySelectorAll('.nav-item').forEach(n => {
+    if (n.onclick?.toString().includes("'" + name + "'")) n.classList.add('active');
+  });
+  const actions = document.getElementById('topbarActions');
+  if (name === 'devis') actions.innerHTML = '<button class="btn btn-primary" onclick="openNewDevis()">+ Nouveau devis</button>';
+  else if (name === 'chantiers') actions.innerHTML = '<button class="btn btn-primary" onclick="showModal(\'newChantier\')">+ Nouveau chantier</button>';
+  else if (name === 'clients') actions.innerHTML = '<button class="btn btn-primary" onclick="showModal(\'newClient\')">+ Nouveau client</button>';
+  else actions.innerHTML = '<button class="btn btn-primary" onclick="showPage(\'devis\');setTimeout(()=>openNewDevis(),100)">+ Nouveau devis</button>';
+  if (name === 'devis') { loadDevisList(); loadClientsForSelect(); }
+  if (name === 'chantiers') loadChantiers();
+  if (name === 'clients') loadClients();
+}
+
+// ---- DASHBOARD ----
+async function loadDashboard() {
+  const [{ data: devisData }, { data: chantiersData }, { data: clientsData }] = await Promise.all([
+    supabase.from('devis').select('*').eq('user_id', currentUser.id),
+    supabase.from('chantiers').select('*').eq('user_id', currentUser.id),
+    supabase.from('clients').select('*').eq('user_id', currentUser.id)
+  ]);
+  const totalHT = (devisData || []).reduce((s, d) => s + (d.total_ht || 0), 0);
+  const signes = (devisData || []).filter(d => d.statut === 'signe').length;
+  document.getElementById('stat-ca').textContent = totalHT ? totalHT.toLocaleString('fr-FR') + ' €' : '0 €';
+  document.getElementById('stat-ca-sub').textContent = (devisData || []).length + ' devis au total';
+  document.getElementById('stat-signes').textContent = signes;
+  document.getElementById('stat-chantiers').textContent = (chantiersData || []).filter(c => c.statut === 'en_cours').length;
+  document.getElementById('stat-clients').textContent = (clientsData || []).length;
+  renderDashDevis(devisData || []);
+  renderDashChantiers(chantiersData || []);
+}
+
+function renderDashDevis(list) {
+  const el = document.getElementById('dash-devis-list');
+  if (!list.length) { el.innerHTML = '<div class="empty"><div class="empty-icon">📄</div>Aucun devis encore</div>'; return; }
+  el.innerHTML = `<table class="table"><thead><tr><th>Client</th><th>Montant HT</th><th>Statut</th><th>Date</th></tr></thead><tbody>${
+    list.slice(0,5).map(d => `<tr onclick="showPage('devis')">
+      <td>${d.numero || '—'}</td>
+      <td style="font-weight:500">${(d.total_ht||0).toLocaleString('fr-FR')} €</td>
+      <td>${badgeStatut(d.statut)}</td>
+      <td style="color:var(--text2)">${new Date(d.created_at).toLocaleDateString('fr-FR')}</td>
+    </tr>`).join('')
+  }</tbody></table>`;
+}
+
+function renderDashChantiers(list) {
+  const el = document.getElementById('dash-chantiers-list');
+  if (!list.length) { el.innerHTML = '<div class="empty"><div class="empty-icon">🏗️</div>Aucun chantier encore</div>'; return; }
+  el.innerHTML = `<table class="table"><thead><tr><th>Chantier</th><th>Avancement</th><th>Statut</th></tr></thead><tbody>${
+    list.slice(0,5).map(c => `<tr>
+      <td>${c.nom}</td>
+      <td><div style="display:flex;align-items:center;gap:8px"><div style="width:100px;height:4px;background:var(--surface3);border-radius:2px"><div style="height:100%;width:${c.avancement}%;background:var(--green);border-radius:2px"></div></div><span style="font-size:11px;color:var(--text2)">${c.avancement}%</span></div></td>
+      <td>${badgeChantier(c.statut)}</td>
+    </tr>`).join('')
+  }</tbody></table>`;
+}
+
+function badgeStatut(s) {
+  const map = { brouillon: ['badge-gray','Brouillon'], signe: ['badge-green','Signé'], en_attente: ['badge-yellow','En attente'], refuse: ['badge-red','Refusé'] };
+  const [cls, label] = map[s] || ['badge-gray', s];
+  return `<span class="badge ${cls}">${label}</span>`;
+}
+function badgeChantier(s) {
+  const map = { en_cours: ['badge-green','En cours'], termine: ['badge-blue','Terminé'], pause: ['badge-yellow','En pause'] };
+  const [cls, label] = map[s] || ['badge-gray', s];
+  return `<span class="badge ${cls}">${label}</span>`;
+}
+
+// ---- CLIENTS ----
+async function loadClientsForSelect() {
+  const { data } = await supabase.from('clients').select('*').eq('user_id', currentUser.id).order('nom');
+  allClients = data || [];
+  ['devis-client-select', 'nch-client'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const val = el.value;
+    el.innerHTML = '<option value="">— Choisir —</option>' + allClients.map(c => `<option value="${c.id}">${c.nom}</option>`).join('');
+    el.value = val;
+  });
+}
+
+async function loadClients() {
+  await loadClientsForSelect();
+  const el = document.getElementById('clients-container');
+  if (!allClients.length) { el.innerHTML = '<div class="empty"><div class="empty-icon">👥</div>Aucun client encore<br><button class="btn btn-primary" style="margin-top:14px" onclick="showModal(\'newClient\')">+ Ajouter</button></div>'; return; }
+  el.innerHTML = `<table class="table"><thead><tr><th>Nom</th><th>Téléphone</th><th>Email</th><th>Type</th><th>Ajouté le</th></tr></thead><tbody>${
+    allClients.map(c => `<tr>
+      <td style="font-weight:500">${c.nom}</td>
+      <td style="color:var(--text2)">${c.telephone || '—'}</td>
+      <td style="color:var(--text2)">${c.email || '—'}</td>
+      <td><span class="badge badge-gray">${c.type || 'particulier'}</span></td>
+      <td style="color:var(--text3)">${new Date(c.created_at).toLocaleDateString('fr-FR')}</td>
+    </tr>`).join('')
+  }</tbody></table>`;
+}
+
+async function saveClient() {
+  const nom = document.getElementById('nc-nom').value.trim();
+  if (!nom) { showToast('Nom obligatoire', 'error'); return; }
+  const { error } = await supabase.from('clients').insert({
+    user_id: currentUser.id,
+    nom,
+    telephone: document.getElementById('nc-tel').value.trim(),
+    email: document.getElementById('nc-email').value.trim(),
+    adresse: document.getElementById('nc-adresse').value.trim(),
+    type: document.getElementById('nc-type').value
+  });
+  if (error) { showToast('Erreur: ' + error.message, 'error'); return; }
+  closeModal('newClient');
+  ['nc-nom','nc-tel','nc-email','nc-adresse'].forEach(id => document.getElementById(id).value = '');
+  showToast('Client créé ✓', 'success');
+  loadClientsForSelect();
+  if (document.getElementById('page-clients').classList.contains('active')) loadClients();
+}
+
+// ---- DEVIS ----
+async function loadDevisList() {
+  const { data } = await supabase.from('devis').select('*, clients(nom)').eq('user_id', currentUser.id).order('created_at', { ascending: false });
+  const el = document.getElementById('devis-table-container');
+  if (!data?.length) { el.innerHTML = '<div class="empty"><div class="empty-icon">📄</div>Aucun devis<br><button class="btn btn-primary" style="margin-top:14px" onclick="openNewDevis()">+ Créer le premier</button></div>'; return; }
+  el.innerHTML = `<table class="table"><thead><tr><th>#</th><th>Client</th><th>Total HT</th><th>Total TTC</th><th>Statut</th><th>Date</th><th></th></tr></thead><tbody>${
+    data.map(d => `<tr>
+      <td style="color:var(--text3);font-size:12px">${d.numero || '—'}</td>
+      <td style="font-weight:500">${d.clients?.nom || '—'}</td>
+      <td>${(d.total_ht||0).toLocaleString('fr-FR')} €</td>
+      <td style="color:var(--accent);font-weight:500">${(d.total_ttc||0).toLocaleString('fr-FR')} €</td>
+      <td>${badgeStatut(d.statut)}</td>
+      <td style="color:var(--text2)">${new Date(d.created_at).toLocaleDateString('fr-FR')}</td>
+      <td><button class="btn btn-ghost" style="font-size:11px;padding:4px 8px" onclick="editDevis('${d.id}')">Modifier</button></td>
+    </tr>`).join('')
+  }</tbody></table>`;
+}
+
+function openNewDevis() {
+  currentDevisId = null;
+  lignes = [];
+  renderLignes();
+  updatePreview();
+  document.getElementById('devis-client-select').value = '';
+  document.getElementById('devis-tva').value = '10';
+  document.getElementById('devis-acompte').value = '30';
+  document.getElementById('devis-remarques').value = '';
+  document.getElementById('devis-list-view').style.display = 'none';
+  document.getElementById('devis-form-view').style.display = 'block';
+  document.getElementById('devis-list-title').textContent = 'Nouveau devis';
+}
+
+async function editDevis(id) {
+  currentDevisId = id;
+  const [{ data: devis }, { data: ligs }] = await Promise.all([
+    supabase.from('devis').select('*').eq('id', id).single(),
+    supabase.from('devis_lignes').select('*').eq('devis_id', id).order('ordre')
+  ]);
+  if (!devis) return;
+  document.getElementById('devis-client-select').value = devis.client_id || '';
+  document.getElementById('devis-tva').value = devis.tva_taux || '10';
+  document.getElementById('devis-acompte').value = devis.acompte_pct || '30';
+  document.getElementById('devis-remarques').value = devis.remarques || '';
+  lignes = (ligs || []).map(l => ({ id: l.id, designation: l.designation, quantite: l.quantite, unite: l.unite, prix_unitaire: l.prix_unitaire }));
+  renderLignes();
+  updatePreview();
+  document.getElementById('devis-list-view').style.display = 'none';
+  document.getElementById('devis-form-view').style.display = 'block';
+  document.getElementById('devis-list-title').textContent = 'Modifier devis';
+}
+
+function closeDevisForm() {
+  document.getElementById('devis-form-view').style.display = 'none';
+  document.getElementById('devis-list-view').style.display = 'block';
+  document.getElementById('devis-list-title').textContent = 'Mes devis';
+  loadDevisList();
+}
+
+function addLigne(desig = '', qte = 1, unite = 'm²', prix = 0) {
+  lignes.push({ id: Date.now(), designation: desig, quantite: qte, unite, prix_unitaire: prix });
+  renderLignes();
+}
+function addQuick(d, u, p) { addLigne(d, 1, u, p); }
+function removeLigne(idx) { lignes.splice(idx, 1); renderLignes(); }
+function updateLigne(idx, field, val) { lignes[idx][field] = field === 'designation' || field === 'unite' ? val : parseFloat(val) || 0; updatePreview(); }
+
+function renderLignes() {
+  const el = document.getElementById('lignes-container');
+  if (!lignes.length) { el.innerHTML = '<div style="font-size:12px;color:var(--text3);padding:10px 0;text-align:center">Utilisez les boutons ci-dessous</div>'; updatePreview(); return; }
+  el.innerHTML = `<div style="display:grid;grid-template-columns:2fr 70px 70px 85px 32px;gap:8px;margin-bottom:6px">
+    ${['Désignation','Qté','Unité','Prix U. HT',''].map(h=>`<span style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.8px">${h}</span>`).join('')}
+  </div>` + lignes.map((l, i) => `<div class="prestation-row">
+    <input value="${l.designation}" placeholder="Désignation" onchange="updateLigne(${i},'designation',this.value)" oninput="updateLigne(${i},'designation',this.value)">
+    <input type="number" value="${l.quantite}" min="0" onchange="updateLigne(${i},'quantite',this.value)">
+    <input value="${l.unite}" placeholder="m²" onchange="updateLigne(${i},'unite',this.value)">
+    <input type="number" value="${l.prix_unitaire}" min="0" step="0.5" onchange="updateLigne(${i},'prix_unitaire',this.value)">
+    <button class="btn-icon" onclick="removeLigne(${i})">×</button>
+  </div>`).join('');
+  updatePreview();
+}
+
+function updatePreview() {
+  const tva = parseFloat(document.getElementById('devis-tva')?.value) || 10;
+  const acompteP = parseFloat(document.getElementById('devis-acompte')?.value) || 30;
+  const ht = lignes.reduce((s, l) => s + (l.quantite || 0) * (l.prix_unitaire || 0), 0);
+  const tvaAmt = ht * tva / 100;
+  const ttc = ht + tvaAmt;
+  document.getElementById('prev-ht').textContent = ht.toFixed(2) + ' €';
+  document.getElementById('prev-tva-label').textContent = 'TVA ' + tva + '%';
+  document.getElementById('prev-tva').textContent = tvaAmt.toFixed(2) + ' €';
+  document.getElementById('prev-ttc').textContent = ttc.toFixed(2) + ' €';
+  document.getElementById('prev-acompte').textContent = (ttc * acompteP / 100).toFixed(2) + ' €';
+  const clientId = document.getElementById('devis-client-select')?.value;
+  const client = allClients.find(c => c.id === clientId);
+  document.getElementById('prev-client-info').textContent = client ? client.nom + (client.adresse ? ' — ' + client.adresse : '') : 'Aucun client sélectionné';
+  document.getElementById('prev-lignes').innerHTML = lignes.map(l =>
+    `<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid var(--border)"><span>${l.designation || '—'} (${l.quantite} ${l.unite})</span><span>${((l.quantite||0)*(l.prix_unitaire||0)).toFixed(2)} €</span></div>`
+  ).join('');
+}
+
+async function saveDevis() {
+  const clientId = document.getElementById('devis-client-select').value;
+  const tva = parseFloat(document.getElementById('devis-tva').value);
+  const acompte = parseFloat(document.getElementById('devis-acompte').value);
+  const remarques = document.getElementById('devis-remarques').value;
+  const ht = lignes.reduce((s, l) => s + (l.quantite || 0) * (l.prix_unitaire || 0), 0);
+  const tvaAmt = ht * tva / 100;
+  const ttc = ht + tvaAmt;
+  if (!clientId) { showToast('Sélectionne un client', 'error'); return; }
+  if (!lignes.length) { showToast('Ajoute au moins une prestation', 'error'); return; }
+  const numero = 'DEV-' + Date.now().toString().slice(-4);
+  let devisId = currentDevisId;
+  if (!devisId) {
+    const { data, error } = await supabase.from('devis').insert({
+      user_id: currentUser.id, client_id: clientId, numero,
+      tva_taux: tva, acompte_pct: acompte, remarques,
+      total_ht: ht, total_tva: tvaAmt, total_ttc: ttc, statut: 'en_attente'
+    }).select().single();
+    if (error) { showToast('Erreur: ' + error.message, 'error'); return; }
+    devisId = data.id;
+    currentDevisId = devisId;
+  } else {
+    await supabase.from('devis').update({ client_id: clientId, tva_taux: tva, acompte_pct: acompte, remarques, total_ht: ht, total_tva: tvaAmt, total_ttc: ttc }).eq('id', devisId);
+    await supabase.from('devis_lignes').delete().eq('devis_id', devisId);
+  }
+  await supabase.from('devis_lignes').insert(lignes.map((l, i) => ({ devis_id: devisId, designation: l.designation, quantite: l.quantite, unite: l.unite, prix_unitaire: l.prix_unitaire, total: (l.quantite||0)*(l.prix_unitaire||0), ordre: i })));
+  showToast('Devis enregistré ✓', 'success');
+  loadDashboard();
+}
+
+async function marquerSigne() {
+  if (!currentDevisId) { showToast('Enregistre le devis d\'abord', 'error'); return; }
+  await supabase.from('devis').update({ statut: 'signe' }).eq('id', currentDevisId);
+  showToast('Devis marqué comme signé ✓', 'success');
+  loadDashboard();
+}
+
+// ---- CHANTIERS ----
+async function loadChantiers() {
+  const { data } = await supabase.from('chantiers').select('*, clients(nom)').eq('user_id', currentUser.id).order('created_at', { ascending: false });
+  const el = document.getElementById('chantiers-container');
+  if (!data?.length) { el.innerHTML = '<div class="empty"><div class="empty-icon">🏗️</div>Aucun chantier<br><button class="btn btn-primary" style="margin-top:14px" onclick="showModal(\'newChantier\')">+ Créer</button></div>'; return; }
+  el.innerHTML = `<table class="table"><thead><tr><th>Chantier</th><th>Client</th><th>Avancement</th><th>Montant HT</th><th>Statut</th><th>Fin prévue</th></tr></thead><tbody>${
+    data.map(c => `<tr>
+      <td style="font-weight:500">${c.nom}</td>
+      <td style="color:var(--text2)">${c.clients?.nom || '—'}</td>
+      <td>
+        <div style="display:flex;align-items:center;gap:8px">
+          <div style="width:80px;height:4px;background:var(--surface3);border-radius:2px">
+            <div style="height:100%;width:${c.avancement||0}%;background:var(--green);border-radius:2px"></div>
+          </div>
+          <span style="font-size:11px;color:var(--text2)">${c.avancement||0}%</span>
+        </div>
+      </td>
+      <td style="color:var(--accent);font-weight:500">${(c.montant||0).toLocaleString('fr-FR')} €</td>
+      <td>${badgeChantier(c.statut)}</td>
+      <td style="color:var(--text2)">${c.date_fin_prevue ? new Date(c.date_fin_prevue).toLocaleDateString('fr-FR') : '—'}</td>
+    </tr>`).join('')
+  }</tbody></table>`;
+}
+
+async function saveChantier() {
+  const nom = document.getElementById('nch-nom').value.trim();
+  if (!nom) { showToast('Nom obligatoire', 'error'); return; }
+  const { error } = await supabase.from('chantiers').insert({
+    user_id: currentUser.id,
+    nom,
+    client_id: document.getElementById('nch-client').value || null,
+    montant: parseFloat(document.getElementById('nch-montant').value) || 0,
+    adresse: document.getElementById('nch-adresse').value.trim(),
+    date_debut: document.getElementById('nch-debut').value || null,
+    date_fin_prevue: document.getElementById('nch-fin').value || null,
+    statut: 'en_cours',
+    avancement: 0
+  });
+  if (error) { showToast('Erreur: ' + error.message, 'error'); return; }
+  closeModal('newChantier');
+  ['nch-nom','nch-montant','nch-adresse','nch-debut','nch-fin'].forEach(id => document.getElementById(id).value = '');
+  showToast('Chantier créé ✓', 'success');
+  loadChantiers();
+  loadDashboard();
+}
+
+// ---- UTILS ----
+function showModal(name) {
+  if (name === 'newChantier' || name === 'newClient') loadClientsForSelect();
+  document.getElementById('modal-' + name).classList.add('open');
+}
+function closeModal(name) { document.getElementById('modal-' + name).classList.remove('open'); }
+
+function showToast(msg, type = 'success') {
+  const t = document.getElementById('toast');
+  document.getElementById('toast-msg').textContent = msg;
+  t.className = 'toast show ' + type;
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// ---- INIT ----
+tryAutoConnect();
+</script>
+</body>
+</html>
